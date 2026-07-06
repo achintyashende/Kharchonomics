@@ -109,7 +109,7 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
 
   const renderAccountsTopbar = () => (
     <header className="sticky top-0 z-10 bg-panel/85 backdrop-blur-xl shadow-app">
-      <div className="flex justify-between items-center min-h-[60px] pt-3 pb-1 px-4 relative">
+      <div className="flex justify-between items-center min-h-[60px] pt-[max(48px,env(safe-area-inset-top))] pb-1 px-4 relative">
         <div className="flex items-center gap-3">
           <button onClick={handleMenuClick} className="w-10 h-10 grid place-items-center text-text -ml-2">
             <Menu size={28} strokeWidth={2.6} />
@@ -140,7 +140,7 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
 
   const renderBudgetsTopbar = () => (
     <header className="sticky top-0 z-10 bg-panel/85 backdrop-blur-xl shadow-app">
-      <div className="grid grid-cols-[52px_1fr_52px_52px] items-center pt-3 pb-2.5 px-4 relative">
+      <div className="grid grid-cols-[52px_1fr_52px_52px] items-center pt-[max(48px,env(safe-area-inset-top))] pb-2.5 px-4 relative">
         <button onClick={() => changeMonth(-1)} className="w-11 h-11 grid place-items-center text-text"><ChevronLeft size={30} strokeWidth={2.6} /></button>
         <h1 className="m-0 text-center text-[clamp(24px,6vw,34px)]">{monthName}</h1>
         <button onClick={() => changeMonth(1)} className="w-11 h-11 grid place-items-center text-text"><ChevronRight size={30} strokeWidth={2.6} /></button>
@@ -161,7 +161,7 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
 
   const renderDefaultTopbar = () => (
     <header className="sticky top-0 z-10 bg-panel/85 backdrop-blur-xl shadow-app">
-      <div className="flex justify-between items-center min-h-[60px] pt-3 pb-2 px-4 relative">
+      <div className="flex justify-between items-center min-h-[60px] pt-[max(48px,env(safe-area-inset-top))] pb-2 px-4 relative">
         <div className="flex items-center gap-4">
           <button onClick={handleMenuClick} className="p-2 -ml-2 bg-transparent border-none text-text flex items-center justify-center">
             <Menu size={26} strokeWidth={2.5} />

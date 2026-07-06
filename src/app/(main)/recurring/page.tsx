@@ -24,7 +24,7 @@ export default async function RecurringPage() {
   const { data: categories } = await supabase.from('categories').select('*').eq('user_id', user.id).eq('archived', false)
 
   return (
-    <div className="pb-24 px-4 pt-6">
+    <div className="pb-24 px-4 pt-[max(48px,env(safe-area-inset-top))]">
       <div className="flex items-center gap-3 mb-2">
         <Link href="/records" className="text-text bg-panel-soft p-2 rounded-full hover:opacity-70 transition-opacity border-2 border-line">
           <ArrowLeft size={24} strokeWidth={2.5} />

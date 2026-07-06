@@ -85,7 +85,7 @@ export default function EntryForm({ accounts, categories, initialTransaction }: 
 
   return (
     <>
-      <div className="flex justify-between items-center min-h-[56px] px-2">
+      <div className="flex justify-between items-center min-h-[56px] px-2 pt-[max(48px,env(safe-area-inset-top))]">
         <button onClick={() => router.back()} className="text-text text-[clamp(16px,4vw,20px)] uppercase font-bold tracking-widest bg-transparent border-none flex items-center gap-2">
           ✕ CANCEL
         </button>
