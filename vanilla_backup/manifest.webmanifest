@@ -1,0 +1,19 @@
+{
+  "name": "Kharchonomics",
+  "short_name": "Kharch",
+  "description": "Personal money tracker with records, analysis, budgets, accounts, and categories.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#3d3d3b",
+  "theme_color": "#54544c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
