@@ -92,7 +92,9 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
   const renderMenuDropdown = () => {
     if (!menuOpen) return null
     return (
-      <div className="absolute top-14 left-4 z-50 bg-panel border-2 border-line rounded-lg shadow-app py-2 min-w-[200px]">
+      <>
+        <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+        <div className="absolute top-14 left-4 z-50 bg-panel border-2 border-line rounded-lg shadow-app py-2 min-w-[200px]">
         <div className="px-4 py-2 border-b border-line mb-2">
           <div className="text-[12px] font-black tracking-widest uppercase text-muted">Logged in as</div>
           <div className="font-bold text-text truncate">{userName}</div>
@@ -121,6 +123,7 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
           <span className="opacity-50">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</span>
         </button>
       </div>
+      </>
     )
   }
 
@@ -228,7 +231,9 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
             </button>
             
             {filterOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-panel border-2 border-line rounded-lg shadow-app py-2 z-50">
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-48 bg-panel border-2 border-line rounded-lg shadow-app py-2 z-50">
                 {['latest', 'highest', 'lowest'].map(sort => (
                   <button 
                     key={sort}
@@ -244,7 +249,8 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
                     {searchParams.get('sort') === sort || (!searchParams.get('sort') && sort === 'latest') ? '✓' : ''}
                   </button>
                 ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
         ) : <span />}
