@@ -21,7 +21,7 @@ export default function AccountsPage() {
 
   const accountsWithLiveBalance = accounts.map(acc => {
     let currentBalance = acc.initial_balance
-    
+
     transactions.forEach(tx => {
       if (tx.type === 'expense' && tx.account_id === acc.id) {
         currentBalance -= tx.amount
@@ -42,7 +42,7 @@ export default function AccountsPage() {
     if (!acc.ignored) {
       totalBalance += currentBalance
     }
-    
+
     return { ...acc, live_balance: currentBalance }
   })
 

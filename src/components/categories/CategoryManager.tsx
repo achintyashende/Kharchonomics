@@ -98,9 +98,13 @@ export default function CategoryManager({ categories }: { categories: Category[]
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center p-6 bg-black/55 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 grid place-items-center p-6 bg-black/55 backdrop-blur-sm"
+          onClick={() => setModalOpen(false)}
+        >
           <form 
             onSubmit={handleSubmit}
+            onClick={e => e.stopPropagation()}
             className="w-full max-w-[430px] max-h-[86svh] overflow-auto p-6 px-4 bg-panel/95 backdrop-blur-2xl rounded-2xl shadow-app border border-line"
           >
             <div className="flex justify-between items-center mb-5">

@@ -23,6 +23,7 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
   
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [timeOfDay, setTimeOfDay] = useState('day')
   const { theme, setTheme } = useTheme()
 
@@ -222,26 +223,29 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
         
         {pathname.startsWith('/records') || pathname === '/' ? (
           <div className="relative">
-            <button className="w-11 h-11 grid place-items-center text-text peer" onClick={() => {}}>
+            <button className="w-11 h-11 grid place-items-center text-text" onClick={() => setFilterOpen(!filterOpen)}>
               <Filter size={30} strokeWidth={2.6} />
             </button>
             
-            <div className="absolute right-0 top-full mt-2 w-48 bg-panel border-2 border-line rounded-lg shadow-app py-2 opacity-0 invisible peer-focus-within:opacity-100 peer-focus-within:visible focus-within:opacity-100 focus-within:visible transition-all z-50">
-              {['latest', 'highest', 'lowest'].map(sort => (
-                <button 
-                  key={sort}
-                  className="w-full text-left px-4 py-2 hover:bg-panel-soft text-text font-bold capitalize flex items-center justify-between"
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams.toString())
-                    params.set('sort', sort)
-                    router.push(`${pathname}?${params.toString()}`)
-                  }}
-                >
-                  {sort}
-                  {searchParams.get('sort') === sort || (!searchParams.get('sort') && sort === 'latest') ? '✓' : ''}
-                </button>
-              ))}
-            </div>
+            {filterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-panel border-2 border-line rounded-lg shadow-app py-2 z-50">
+                {['latest', 'highest', 'lowest'].map(sort => (
+                  <button 
+                    key={sort}
+                    className="w-full text-left px-4 py-2 hover:bg-panel-soft text-text font-bold capitalize flex items-center justify-between"
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams.toString())
+                      params.set('sort', sort)
+                      router.push(`${pathname}?${params.toString()}`)
+                      setFilterOpen(false)
+                    }}
+                  >
+                    {sort}
+                    {searchParams.get('sort') === sort || (!searchParams.get('sort') && sort === 'latest') ? '✓' : ''}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : <span />}
       </div>
