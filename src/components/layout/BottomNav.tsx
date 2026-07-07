@@ -16,7 +16,7 @@ export function BottomNav() {
   ]
   
   return (
-    <nav className="fixed left-0 right-0 bottom-0 z-[15] grid grid-cols-5 min-h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] px-1 pt-1.5 bg-panel/85 backdrop-blur-xl shadow-[0_-8px_22px_rgba(2,21,38,0.4)] md:left-1/2 md:w-[520px] md:-translate-x-1/2">
+    <nav className="relative z-[50] grid grid-cols-5 min-h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] px-1 pt-1.5 bg-panel/85 backdrop-blur-xl shadow-[0_-8px_22px_rgba(2,21,38,0.4)] md:max-w-[520px] md:mx-auto">
       {tabs.map((tab) => {
         const isActive = pathname.startsWith(tab.href)
         const Icon = tab.icon
