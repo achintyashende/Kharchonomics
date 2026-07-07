@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans antialiased max-w-md mx-auto bg-bg text-text shadow-xl h-[100dvh] overflow-hidden flex flex-col`}
+        className={`${inter.variable} font-sans antialiased max-w-md mx-auto bg-bg text-text shadow-xl h-screen h-[100dvh] overflow-hidden flex flex-col`}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <RecurringSyncer />
