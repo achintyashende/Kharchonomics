@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { money } from '@/lib/utils'
+import { db } from '@/lib/db'
 
 export type TopbarProps = {
   userName: string
@@ -43,26 +44,48 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
   
   const monthName = new Date(currentYear, currentMonth, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
   
-  const handleLogout = async () => {
-    // We can call an api endpoint to logout or use supabase client
-    await fetch('/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
-  }
-
   const handleMenuClick = () => setMenuOpen(!menuOpen)
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const text = await file.text()
     try {
-      const { importCSVData } = await import('@/app/(main)/settings/actions')
-      const res = await importCSVData(text)
-      alert(`Successfully imported ${res.count} records!`)
-      setMenuOpen(false)
+      const text = await file.text()
+      const data = JSON.parse(text)
+      
+      if (confirm('This will merge the backup into your current data. Continue?')) {
+        await db.transaction('rw', db.accounts, db.categories, db.transactions, db.budgets, db.recurring_transactions, async () => {
+          if (data.accounts) await db.accounts.bulkPut(data.accounts)
+          if (data.categories) await db.categories.bulkPut(data.categories)
+          if (data.transactions) await db.transactions.bulkPut(data.transactions)
+          if (data.budgets) await db.budgets.bulkPut(data.budgets)
+          if (data.recurring_transactions) await db.recurring_transactions.bulkPut(data.recurring_transactions)
+        })
+        alert('Backup restored successfully!')
+        window.location.reload()
+      }
     } catch (err: any) {
-      alert(`Import failed: ${err.message}`)
+      alert('Import failed. Invalid backup file.')
     }
+    setMenuOpen(false)
+  }
+
+  const handleExportJSON = async () => {
+    const data = {
+      accounts: await db.accounts.toArray(),
+      categories: await db.categories.toArray(),
+      transactions: await db.transactions.toArray(),
+      budgets: await db.budgets.toArray(),
+      recurring_transactions: await db.recurring_transactions.toArray(),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Kaash_Backup_${new Date().toISOString().split('T')[0]}.kaash`
+    a.click()
+    URL.revokeObjectURL(url)
+    setMenuOpen(false)
   }
 
   const renderMenuDropdown = () => {
@@ -75,15 +98,15 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
         </div>
         
         <label className="w-full text-left px-4 py-3 bg-transparent border-none text-text font-bold hover:bg-panel-soft flex justify-between items-center cursor-pointer">
-          Import CSV
+          Restore Backup
           <span className="opacity-50">↑</span>
-          <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          <input type="file" accept=".kaash" className="hidden" onChange={handleImportJSON} />
         </label>
 
-        <a href="/api/export" className="w-full text-left px-4 py-3 bg-transparent border-none text-text font-bold hover:bg-panel-soft flex justify-between items-center no-underline cursor-pointer" onClick={() => setMenuOpen(false)}>
-          Export CSV
+        <button onClick={handleExportJSON} className="w-full text-left px-4 py-3 bg-transparent border-none text-text font-bold hover:bg-panel-soft flex justify-between items-center cursor-pointer">
+          Save Backup
           <span className="opacity-50">↓</span>
-        </a>
+        </button>
 
         <div className="h-[1px] bg-line my-2" />
 
@@ -95,13 +118,6 @@ export function Topbar({ userName, expenseTotal = 0, incomeTotal = 0, balanceTot
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-full text-left px-4 py-3 bg-transparent border-none text-text font-bold hover:bg-panel-soft flex justify-between items-center cursor-pointer">
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           <span className="opacity-50">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</span>
-        </button>
-
-        <div className="h-[1px] bg-line my-2" />
-        
-        <button onClick={handleLogout} className="w-full text-left px-4 py-3 bg-transparent border-none text-expense font-bold hover:bg-panel-soft flex justify-between items-center cursor-pointer">
-          Logout
-          <span className="opacity-50">→</span>
         </button>
       </div>
     )

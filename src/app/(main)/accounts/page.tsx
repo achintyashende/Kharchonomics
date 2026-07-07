@@ -1,25 +1,28 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/lib/db'
 import AccountManager from '@/components/accounts/AccountManager'
 import { Topbar } from '@/components/layout/Topbar'
 
-export default async function AccountsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'
+export default function AccountsPage() {
+  const userName = 'User'
 
-  const [{ data: accounts }, { data: transactions }] = await Promise.all([
-    supabase.from('accounts').select('*').eq('archived', false).order('created_at'),
-    supabase.from('transactions').select('*').eq('archived', false)
-  ])
+  const accounts = useLiveQuery(() => db.accounts.filter(a => !a.archived).toArray())
+  const transactions = useLiveQuery(() => db.transactions.filter(t => !t.archived).toArray())
+
+  if (accounts === undefined || transactions === undefined) {
+    return null
+  }
 
   let totalBalance = 0
   let expenseTotal = 0
   let incomeTotal = 0
 
-  const accountsWithLiveBalance = (accounts || []).map(acc => {
+  const accountsWithLiveBalance = accounts.map(acc => {
     let currentBalance = acc.initial_balance
     
-    ;(transactions || []).forEach(tx => {
+    transactions.forEach(tx => {
       if (tx.type === 'expense' && tx.account_id === acc.id) {
         currentBalance -= tx.amount
         if (!acc.ignored) expenseTotal += tx.amount

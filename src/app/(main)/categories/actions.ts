@@ -1,7 +1,5 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function saveCategory(data: {
   id?: string
@@ -10,46 +8,26 @@ export async function saveCategory(data: {
   icon: string
   color: string
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
   if (data.id) {
-    const { error } = await supabase.from('categories').update({
-      name: data.name,
-      type: data.type,
-      icon: data.icon,
-      color: data.color,
-    }).eq('id', data.id).eq('user_id', user.id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await supabase.from('categories').insert({
-      user_id: user.id,
+    await db.categories.update(data.id, {
       name: data.name,
       type: data.type,
       icon: data.icon,
       color: data.color,
     })
-    if (error) throw new Error(error.message)
+  } else {
+    await db.categories.add({
+      id: uuidv4(),
+      name: data.name,
+      type: data.type,
+      icon: data.icon,
+      color: data.color,
+      archived: false,
+      created_at: new Date().toISOString()
+    })
   }
-
-  revalidatePath('/categories')
-  revalidatePath('/records')
-  revalidatePath('/analysis')
-  revalidatePath('/budgets')
-  revalidatePath('/entry')
 }
 
 export async function deleteCategory(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  await supabase.from('categories').update({ archived: true }).eq('id', id).eq('user_id', user.id)
-  
-  revalidatePath('/categories')
-  revalidatePath('/records')
-  revalidatePath('/analysis')
-  revalidatePath('/budgets')
-  revalidatePath('/entry')
+  await db.categories.update(id, { archived: true })
 }

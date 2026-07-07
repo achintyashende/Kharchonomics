@@ -1,7 +1,5 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function setBudget(data: {
   categoryId: string
@@ -9,35 +7,26 @@ export async function setBudget(data: {
   year: number
   limitAmount: number
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
   // Check if budget exists for this month/category
-  const { data: existing } = await supabase
-    .from('budgets')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('category_id', data.categoryId)
-    .eq('month', data.month)
-    .eq('year', data.year)
-    .single()
+  const existing = await db.budgets
+    .where({ month: data.month, year: data.year, category_id: data.categoryId })
+    .first()
 
   if (existing) {
     if (data.limitAmount === 0) {
-      await supabase.from('budgets').delete().eq('id', existing.id)
+      await db.budgets.delete(existing.id)
     } else {
-      await supabase.from('budgets').update({ limit_amount: data.limitAmount }).eq('id', existing.id)
+      await db.budgets.update(existing.id, { limit_amount: data.limitAmount })
     }
   } else if (data.limitAmount > 0) {
-    await supabase.from('budgets').insert({
-      user_id: user.id,
+    await db.budgets.add({
+      id: uuidv4(),
       category_id: data.categoryId,
       month: data.month,
       year: data.year,
-      limit_amount: data.limitAmount
+      limit_amount: data.limitAmount,
+      archived: false,
+      created_at: new Date().toISOString()
     })
   }
-
-  revalidatePath('/budgets')
 }

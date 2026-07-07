@@ -1,7 +1,5 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function saveAccount(data: {
   id?: string
@@ -9,52 +7,34 @@ export async function saveAccount(data: {
   icon: string
   initialBalance: number
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
   if (data.id) {
-    const { error } = await supabase.from('accounts').update({
-      name: data.name,
-      icon: data.icon,
-      initial_balance: data.initialBalance,
-    }).eq('id', data.id).eq('user_id', user.id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await supabase.from('accounts').insert({
-      user_id: user.id,
+    await db.accounts.update(data.id, {
       name: data.name,
       icon: data.icon,
       initial_balance: data.initialBalance,
     })
-    if (error) throw new Error(error.message)
+  } else {
+    await db.accounts.add({
+      id: uuidv4(),
+      name: data.name,
+      icon: data.icon,
+      initial_balance: data.initialBalance,
+      archived: false,
+      ignored: false,
+      created_at: new Date().toISOString()
+    })
   }
-
-  revalidatePath('/accounts')
-  revalidatePath('/records')
-  revalidatePath('/entry')
 }
 
 export async function deleteAccount(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
   // Archive the account itself
-  await supabase.from('accounts').update({ archived: true }).eq('id', id).eq('user_id', user.id)
+  await db.accounts.update(id, { archived: true })
   
   // Archive all transactions associated with this account (Cascade)
-  await supabase.from('transactions').update({ archived: true }).eq('account_id', id).eq('user_id', user.id)
-  await supabase.from('transactions').update({ archived: true }).eq('to_account_id', id).eq('user_id', user.id)
-  revalidatePath('/accounts')
-  revalidatePath('/records')
+  await db.transactions.where('account_id').equals(id).modify({ archived: true })
+  await db.transactions.where('to_account_id').equals(id).modify({ archived: true })
 }
 
 export async function toggleIgnoreAccount(id: string, currentlyIgnored: boolean) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  await supabase.from('accounts').update({ ignored: !currentlyIgnored }).eq('id', id).eq('user_id', user.id)
-  revalidatePath('/accounts')
+  await db.accounts.update(id, { ignored: !currentlyIgnored })
 }

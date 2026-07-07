@@ -1,55 +1,66 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/lib/db'
 import { Topbar } from '@/components/layout/Topbar'
 import Link from 'next/link'
 import { money } from '@/lib/utils'
 import { CategoryIcon } from '@/components/ui/CategoryIcon'
 import { format, parseISO } from 'date-fns'
+import { useSearchParams } from 'next/navigation'
 
-export default async function RecordsPage(props: { searchParams: Promise<{ m?: string, y?: string, q?: string, sort?: string }> }) {
-  const searchParams = await props.searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'
+export default function RecordsPage() {
+  const searchParams = useSearchParams()
+  const userName = 'User' // Defaulting since no auth
 
-  const currentMonth = searchParams.m ? parseInt(searchParams.m) : new Date().getMonth()
-  const currentYear = searchParams.y ? parseInt(searchParams.y) : new Date().getFullYear()
+  const currentMonth = searchParams.get('m') ? parseInt(searchParams.get('m')!) : new Date().getMonth()
+  const currentYear = searchParams.get('y') ? parseInt(searchParams.get('y')!) : new Date().getFullYear()
 
   const startDate = new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA')
   const endDate = new Date(currentYear, currentMonth + 1, 0).toLocaleDateString('en-CA')
 
-  const [{ data: transactions }, { data: accounts }, { data: categories }] = await Promise.all([
-    supabase
-      .from('transactions')
-      .select('*')
-      .eq('archived', false)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: false })
-      .order('time', { ascending: false }),
-    supabase.from('accounts').select('*'),
-    supabase.from('categories').select('*')
-  ])
+  const transactions = useLiveQuery(
+    () => db.transactions
+      .where('date')
+      .between(startDate, endDate, true, true)
+      .filter(tx => !tx.archived)
+      .toArray(),
+    [startDate, endDate]
+  )
+  
+  const accounts = useLiveQuery(() => db.accounts.toArray())
+  const categories = useLiveQuery(() => db.categories.toArray())
+
+  if (transactions === undefined || accounts === undefined || categories === undefined) {
+    return null // or a loading skeleton
+  }
+
+  // Sort descending manually since Dexie between() returns ascending by default
+  transactions.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date)
+    return b.time.localeCompare(a.time)
+  })
 
   let expenseTotal = 0
   let incomeTotal = 0
   
-  ;(transactions || []).forEach(tx => {
+  transactions.forEach(tx => {
     if (tx.type === 'expense') expenseTotal += tx.amount
     if (tx.type === 'income') incomeTotal += tx.amount
   })
 
   // Apply Search
-  const searchQuery = searchParams.q?.toLowerCase() || ''
-  let filteredTransactions = (transactions || []).filter(tx => {
+  const searchQuery = searchParams.get('q')?.toLowerCase() || ''
+  let filteredTransactions = transactions.filter(tx => {
     if (!searchQuery) return true
-    const cat = categories?.find(c => c.id === tx.category_id)
+    const cat = categories.find(c => c.id === tx.category_id)
     const matchesCategory = cat?.name.toLowerCase().includes(searchQuery)
     const matchesNotes = tx.notes?.toLowerCase().includes(searchQuery)
     return matchesCategory || matchesNotes
   })
 
   // Apply Sorting
-  const sort = searchParams.sort || 'latest'
+  const sort = searchParams.get('sort') || 'latest'
   if (sort === 'highest') {
     filteredTransactions = filteredTransactions.sort((a, b) => b.amount - a.amount)
   } else if (sort === 'lowest') {
@@ -81,9 +92,9 @@ export default async function RecordsPage(props: { searchParams: Promise<{ m?: s
               </h3>
               <div className="grid gap-0">
                 {(txs as any[]).map(tx => {
-                  const account = accounts?.find(a => a.id === tx.account_id)
-                  const toAccount = accounts?.find(a => a.id === tx.to_account_id)
-                  const category = categories?.find(c => c.id === tx.category_id)
+                  const account = accounts.find(a => a.id === tx.account_id)
+                  const toAccount = accounts.find(a => a.id === tx.to_account_id)
+                  const category = categories.find(c => c.id === tx.category_id)
                   
                   const isTransfer = tx.type === 'transfer'
                   const title = isTransfer ? 'Transfer' : category?.name || 'Unknown'

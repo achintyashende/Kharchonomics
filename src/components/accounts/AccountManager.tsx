@@ -175,7 +175,7 @@ export default function AccountManager({ accounts }: { accounts: (Account & { li
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="min-h-[48px] p-2.5 px-4 rounded-lg font-bold uppercase border-2 border-text bg-line text-[#3b3b38] disabled:opacity-50"
+                className="min-h-[48px] p-2.5 px-4 rounded-lg font-bold uppercase border-none bg-text text-bg disabled:opacity-50"
               >
                 Save
               </button>

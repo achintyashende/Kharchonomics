@@ -1,8 +1,5 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function saveTransaction(data: {
   id?: string
@@ -15,16 +12,11 @@ export async function saveTransaction(data: {
   date: string
   time: string
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
   if (data.type === 'transfer' && data.accountId === data.toAccountId) {
     throw new Error('Transfer from and to accounts cannot be the same')
   }
 
   const payload = {
-    user_id: user.id,
     type: data.type,
     amount: data.amount,
     account_id: data.accountId,
@@ -36,31 +28,17 @@ export async function saveTransaction(data: {
   }
 
   if (data.id) {
-    const { error } = await supabase.from('transactions').update(payload).eq('id', data.id).eq('user_id', user.id)
-    if (error) {
-      console.error('Error updating transaction:', error)
-      throw new Error('Failed to update transaction')
-    }
+    await db.transactions.update(data.id, payload)
   } else {
-    const { error } = await supabase.from('transactions').insert(payload)
-    if (error) {
-      console.error('Error creating transaction:', error)
-      throw new Error('Failed to create transaction')
-    }
+    await db.transactions.add({
+      id: uuidv4(),
+      ...payload,
+      archived: false,
+      created_at: new Date().toISOString()
+    })
   }
-
-  revalidatePath('/records')
-  revalidatePath('/analysis')
-  redirect('/records')
 }
 
 export async function deleteTransaction(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-  
-  await supabase.from('transactions').update({ archived: true }).eq('id', id).eq('user_id', user.id)
-  revalidatePath('/records')
-  revalidatePath('/analysis')
-  redirect('/records')
+  await db.transactions.update(id, { archived: true })
 }

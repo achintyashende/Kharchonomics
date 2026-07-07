@@ -1,37 +1,39 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/lib/db'
 import CategoryManager from '@/components/categories/CategoryManager'
 import { Topbar } from '@/components/layout/Topbar'
+import { useSearchParams } from 'next/navigation'
 
-export default async function CategoriesPage(props: { searchParams: Promise<{ m?: string, y?: string }> }) {
-  const searchParams = await props.searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'
+export default function CategoriesPage() {
+  const searchParams = useSearchParams()
+  const userName = 'User'
 
-  const currentMonth = searchParams.m ? parseInt(searchParams.m) : new Date().getMonth()
-  const currentYear = searchParams.y ? parseInt(searchParams.y) : new Date().getFullYear()
+  const currentMonth = searchParams.get('m') ? parseInt(searchParams.get('m')!) : new Date().getMonth()
+  const currentYear = searchParams.get('y') ? parseInt(searchParams.get('y')!) : new Date().getFullYear()
 
   const startDate = new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA')
   const endDate = new Date(currentYear, currentMonth + 1, 0).toLocaleDateString('en-CA')
 
-  const [{ data: categories }, { data: transactions }] = await Promise.all([
-    supabase
-      .from('categories')
-      .select('*')
-      .eq('archived', false)
-      .order('created_at'),
-    supabase
-      .from('transactions')
-      .select('*')
-      .eq('archived', false)
-      .gte('date', startDate)
-      .lte('date', endDate)
-  ])
+  const categories = useLiveQuery(() => db.categories.filter(c => !c.archived).toArray())
+  const transactions = useLiveQuery(
+    () => db.transactions
+      .where('date')
+      .between(startDate, endDate, true, true)
+      .filter(tx => !tx.archived)
+      .toArray(),
+    [startDate, endDate]
+  )
+
+  if (categories === undefined || transactions === undefined) {
+    return null
+  }
 
   let expenseTotal = 0
   let incomeTotal = 0
   
-  ;(transactions || []).forEach(tx => {
+  transactions.forEach(tx => {
     if (tx.type === 'expense') expenseTotal += tx.amount
     if (tx.type === 'income') incomeTotal += tx.amount
   })
@@ -40,7 +42,7 @@ export default async function CategoriesPage(props: { searchParams: Promise<{ m?
     <>
       <Topbar userName={userName} month={currentMonth} year={currentYear} expenseTotal={expenseTotal} incomeTotal={incomeTotal} />
       <div className="p-6 px-4 pb-[80px]">
-        <CategoryManager categories={categories || []} />
+        <CategoryManager categories={categories} />
       </div>
     </>
   )

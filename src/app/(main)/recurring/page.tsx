@@ -1,27 +1,31 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/lib/db'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import RecurringList from './RecurringList'
 
-export default async function RecurringPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+export default function RecurringPage() {
+  const accounts = useLiveQuery(() => db.accounts.filter(a => !a.archived).toArray())
+  const categories = useLiveQuery(() => db.categories.filter(c => !c.archived).toArray())
+  const recurring = useLiveQuery(() => db.recurring_transactions.filter(r => !r.archived).toArray())
 
-  const { data: recurring } = await supabase
-    .from('recurring_transactions')
-    .select(`
-      *,
-      account:accounts!account_id(name, icon),
-      category:categories!category_id(name, icon, color)
-    `)
-    .eq('user_id', user.id)
-    .eq('archived', false)
-    .order('day_of_month', { ascending: true })
+  if (accounts === undefined || categories === undefined || recurring === undefined) {
+    return null
+  }
 
-  const { data: accounts } = await supabase.from('accounts').select('*').eq('user_id', user.id).eq('archived', false)
-  const { data: categories } = await supabase.from('categories').select('*').eq('user_id', user.id).eq('archived', false)
+  // Map account and category data onto the recurring transactions 
+  // since Supabase used to do a joined query
+  const recurringJoined = recurring.map(r => {
+    const acc = accounts.find(a => a.id === r.account_id)
+    const cat = categories.find(c => c.id === r.category_id)
+    return {
+      ...r,
+      account: acc ? { name: acc.name, icon: acc.icon } : undefined,
+      category: cat ? { name: cat.name, icon: cat.icon, color: cat.color } : undefined
+    }
+  }).sort((a, b) => a.day_of_month - b.day_of_month)
 
   return (
     <div className="pb-24 px-4 pt-[max(48px,env(safe-area-inset-top))]">
@@ -34,9 +38,9 @@ export default async function RecurringPage() {
       <p className="text-muted mb-6">Transactions that automatically log themselves each month.</p>
       
       <RecurringList 
-        initialData={recurring || []} 
-        accounts={accounts || []} 
-        categories={categories || []} 
+        initialData={recurringJoined as any} 
+        accounts={accounts} 
+        categories={categories} 
       />
     </div>
   )
